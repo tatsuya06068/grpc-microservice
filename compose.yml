@@ -1,0 +1,36 @@
+services:
+  app:
+    image: golang:1.22
+    volumes:
+      - type: bind
+        source: ./service/src
+        target: /src/app
+    working_dir: /src/app
+    tty: true
+    ports:
+      - "50051:50051"  
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"  # API Gateway用ポート
+      - "4571:4571"  # Lambda用ポー
+    tty: true
+    environment:
+      - SERVICES=lambda,apigateway
+      - DEFAULT_REGION=us-east-1
+      - GRPC_SERVER_ADDRESS=grpc-server:50051  # gRPCサーバーのアドレス
+    volumes:
+      - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
+
+  lambda:
+    build:
+      context: .
+      dockerfile: Dockerfile.lambda-dev
+    volumes:
+      - type: bind
+        source: ./lambda
+        target: /app
+    tty: true
+    ports:
+      - "9000:8080"  # Lambdaプロキシ用ポート
